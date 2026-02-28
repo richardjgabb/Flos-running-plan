@@ -1,170 +1,324 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Half Marathon Training Plan (Goal: 1:50)</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f8;
-            margin: 20px;
-        }
+<meta charset="UTF-8">
+<title>Half Marathon Training Plan Dashboard</title>
 
-        h1 {
-            text-align: center;
-        }
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background:#f4f6f8;
+    margin:20px;
+}
 
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            background-color: white;
-        }
+h1,h2 {
+    text-align:center;
+}
 
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-        }
+.dashboard {
+    display:flex;
+    justify-content:space-around;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+}
 
-        th {
-            background-color: #2c7be5;
-            color: white;
-        }
+.card {
+    background:white;
+    padding:15px;
+    margin:10px;
+    border-radius:8px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    min-width:200px;
+    text-align:center;
+}
 
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
+.progress-bar {
+    width:100%;
+    background:#ddd;
+    height:20px;
+    border-radius:10px;
+}
 
-        .rest {
-            color: #888;
-        }
+.progress-fill {
+    height:100%;
+    background:#2c7be5;
+    border-radius:10px;
+    width:0%;
+}
 
-        .long {
-            color: #d9534f;
-            font-weight: bold;
-        }
+table {
+    border-collapse: collapse;
+    width:100%;
+    background:white;
+}
 
-        .tempo {
-            color: #f0ad4e;
-            font-weight: bold;
-        }
+th, td {
+    border:1px solid #ddd;
+    padding:8px;
+}
 
-        .interval {
-            color: #5bc0de;
-            font-weight: bold;
-        }
+th {
+    background:#2c7be5;
+    color:white;
+}
 
-        .easy {
-            color: #5cb85c;
-        }
+tr:nth-child(even){
+    background:#f2f2f2;
+}
 
-        .race {
-            background-color: #ffeeba;
-            font-weight: bold;
-        }
-    </style>
+.today {
+    background:#bbdefb !important;
+}
+
+/* shifts */
+.shift12 { background:#ffcdd2; }
+.shiftShort { background:#fff9c4; }
+.off { background:#c8e6c9; }
+
+/* runs */
+.easy { color:green; font-weight:bold; }
+.tempo { color:orange; font-weight:bold; }
+.interval { color:blue; font-weight:bold; }
+.long { color:red; font-weight:bold; }
+.rest { color:gray; }
+.race { background:#ffe082; font-weight:bold; }
+
+</style>
 </head>
 <body>
 
-<h1>Half Marathon Training Plan (Goal: 1:50)</h1>
+<h1>Half Marathon Training Dashboard</h1>
+
+<div class="dashboard">
+
+<div class="card">
+<h3>Countdown</h3>
+<div id="countdown"></div>
+</div>
+
+<div class="card">
+<h3>Progress</h3>
+<div class="progress-bar">
+<div class="progress-fill" id="progressFill"></div>
+</div>
+<div id="progressText"></div>
+</div>
+
+<div class="card">
+<h3>Predicted Finish</h3>
+<div id="prediction">2:00:00</div>
+</div>
+
+</div>
 
 <table>
-    <thead>
-        <tr>
-            <th>Date</th>
-            <th>Workout Type</th>
-            <th>Details</th>
-        </tr>
-    </thead>
-    <tbody id="planTable"></tbody>
+<thead>
+<tr>
+<th>Done</th>
+<th>Date</th>
+<th>Shift</th>
+<th>Run</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody id="table"></tbody>
 </table>
 
 <script>
-const plan = [
-    {date: "Mar 2", type: "easy", details: "Easy run 6 km"},
-    {date: "Mar 3", type: "rest", details: "Rest"},
-    {date: "Mar 4", type: "tempo", details: "7 km total (4 km tempo)"},
-    {date: "Mar 5", type: "rest", details: "Rest"},
-    {date: "Mar 6", type: "easy", details: "Easy run 7 km"},
-    {date: "Mar 7", type: "long", details: "Long run 12 km"},
-    {date: "Mar 8", type: "easy", details: "Recovery run 5 km"},
 
-    {date: "Mar 9", type: "interval", details: "5 × 800 m intervals"},
-    {date: "Mar 10", type: "rest", details: "Rest"},
-    {date: "Mar 11", type: "rest", details: "Rest"},
-    {date: "Mar 12", type: "easy", details: "Easy run 8 km"},
-    {date: "Mar 13", type: "rest", details: "Rest"},
-    {date: "Mar 14", type: "long", details: "Long run 14 km"},
-    {date: "Mar 15", type: "easy", details: "Recovery run 6 km"},
+const goalTimeMinutes = 110;
+const startPrediction = 120;
 
-    {date: "Mar 16", type: "tempo", details: "8 km total (5 km tempo)"},
-    {date: "Mar 17", type: "rest", details: "Rest"},
-    {date: "Mar 18", type: "rest", details: "Rest"},
-    {date: "Mar 19", type: "easy", details: "Easy run 7 km"},
-    {date: "Mar 20", type: "easy", details: "Easy run 6 km"},
-    {date: "Mar 21", type: "long", details: "Long run 15 km"},
-    {date: "Mar 22", type: "rest", details: "Rest"},
+const raceDate = new Date("2026-05-10");
 
-    {date: "Mar 25", type: "interval", details: "6 × 800 m intervals"},
-    {date: "Mar 26", type: "easy", details: "Easy run 7 km"},
-    {date: "Mar 28", type: "long", details: "Long run 16 km"},
-    {date: "Mar 29", type: "easy", details: "Recovery run 6 km"},
+const shifts12 = new Set([
+"2026-03-03","2026-03-05","2026-03-10","2026-03-11","2026-03-13",
+"2026-03-17","2026-03-18","2026-03-23","2026-03-24","2026-03-31",
+"2026-04-01","2026-04-06","2026-04-08","2026-04-09","2026-04-13",
+"2026-04-14","2026-04-16","2026-04-20","2026-04-21","2026-04-23",
+"2026-04-28","2026-05-05","2026-05-06"
+]);
 
-    {date: "Mar 30", type: "tempo", details: "9 km total (6 km tempo)"},
-    {date: "Apr 2", type: "easy", details: "Easy run 8 km"},
-    {date: "Apr 3", type: "easy", details: "Easy run 6 km"},
-    {date: "Apr 4", type: "long", details: "Long run 18 km"},
+const shiftsShort = new Set([
+"2026-03-02","2026-03-08","2026-03-21","2026-04-11",
+"2026-04-19","2026-05-02","2026-05-03"
+]);
 
-    {date: "Apr 7", type: "interval", details: "5 × 1 km intervals"},
-    {date: "Apr 10", type: "easy", details: "Easy run 8 km"},
-    {date: "Apr 11", type: "long", details: "Long run 19 km"},
-    {date: "Apr 12", type: "easy", details: "Recovery run 6 km"},
+const runs = {
 
-    {date: "Apr 15", type: "tempo", details: "10 km total (7 km tempo)"},
-    {date: "Apr 17", type: "easy", details: "Easy run 8 km"},
-    {date: "Apr 18", type: "long", details: "Long run 20 km"},
-    {date: "Apr 19", type: "easy", details: "Recovery run 5 km"},
+"2026-03-02": ["easy","6 km easy run at 5:50–6:30/km"],
+"2026-03-04": ["tempo","Tempo run improves race pace"],
+"2026-03-06": ["easy","Easy endurance run"],
+"2026-03-07": ["long","Long run builds endurance"],
+"2026-03-08": ["easy","Recovery run"],
 
-    {date: "Apr 22", type: "interval", details: "4 × 800 m intervals"},
-    {date: "Apr 24", type: "easy", details: "Easy run 7 km"},
-    {date: "Apr 25", type: "long", details: "Long run 14 km"},
+"2026-03-09": ["interval","Speed intervals improve VO2 max"],
+"2026-03-12": ["easy","Easy run"],
+"2026-03-14": ["long","Long endurance run"],
+"2026-03-15": ["easy","Recovery run"],
 
-    {date: "Apr 27", type: "tempo", details: "8 km total (4 km tempo)"},
-    {date: "Apr 29", type: "easy", details: "Easy run 6 km"},
-    {date: "May 1", type: "easy", details: "Easy run 5 km"},
-    {date: "May 2", type: "easy", details: "Easy run 6 km"},
+"2026-03-16": ["tempo","Tempo improves sustained speed"],
+"2026-03-19": ["easy","Easy run"],
+"2026-03-20": ["easy","Easy run"],
+"2026-03-21": ["long","Long endurance run"],
 
-    {date: "May 4", type: "easy", details: "Easy run 5 km"},
-    {date: "May 7", type: "easy", details: "Easy run 4 km"},
+"2026-03-25": ["interval","Speed intervals"],
+"2026-03-26": ["easy","Easy run"],
+"2026-03-28": ["long","Long run"],
+"2026-03-29": ["easy","Recovery run"],
 
-    {date: "May 10", type: "race", details: "RACE DAY – Half Marathon (Goal: 1:50, Pace: 5:13/km)"}
-];
+"2026-03-30": ["tempo","Tempo run"],
 
-const table = document.getElementById("planTable");
+"2026-04-02": ["easy","Easy run"],
+"2026-04-03": ["easy","Easy run"],
+"2026-04-04": ["long","Long run"],
 
-plan.forEach(workout => {
-    const row = document.createElement("tr");
+"2026-04-07": ["interval","Intervals"],
+"2026-04-10": ["easy","Easy run"],
+"2026-04-11": ["long","Long run"],
+"2026-04-12": ["easy","Recovery run"],
 
-    if (workout.type === "race") {
-        row.classList.add("race");
-    }
+"2026-04-15": ["tempo","Tempo run"],
+"2026-04-17": ["easy","Easy run"],
+"2026-04-18": ["long","Peak long run"],
+"2026-04-19": ["easy","Recovery run"],
 
-    const dateCell = document.createElement("td");
-    dateCell.textContent = workout.date;
+"2026-04-22": ["interval","Intervals"],
+"2026-04-24": ["easy","Easy run"],
+"2026-04-25": ["long","Long run"],
 
-    const typeCell = document.createElement("td");
-    typeCell.textContent = workout.type.toUpperCase();
-    typeCell.className = workout.type;
+"2026-04-27": ["tempo","Tempo run"],
+"2026-04-29": ["easy","Easy run"],
+"2026-05-01": ["easy","Easy run"],
+"2026-05-02": ["easy","Easy run"],
 
-    const detailsCell = document.createElement("td");
-    detailsCell.textContent = workout.details;
+"2026-05-04": ["easy","Easy run"],
+"2026-05-07": ["easy","Easy run"],
 
-    row.appendChild(dateCell);
-    row.appendChild(typeCell);
-    row.appendChild(detailsCell);
+"2026-05-10": ["race","Race Day"]
+};
 
-    table.appendChild(row);
+const table = document.getElementById("table");
+
+let totalRuns = Object.keys(runs).length;
+let completedRuns = 0;
+
+function saveProgress(id, checked){
+localStorage.setItem(id, checked);
+updateStats();
+}
+
+function loadProgress(id){
+return localStorage.getItem(id)==="true";
+}
+
+function updateStats(){
+
+completedRuns=0;
+
+Object.keys(runs).forEach(date=>{
+if(localStorage.getItem(date)==="true"){
+completedRuns++;
+}
 });
+
+let percent = Math.round((completedRuns/totalRuns)*100);
+
+document.getElementById("progressFill").style.width = percent+"%";
+document.getElementById("progressText").innerText =
+completedRuns + " / " + totalRuns + " runs completed ("+percent+"%)";
+
+let predicted =
+startPrediction - ((completedRuns/totalRuns)*(startPrediction-goalTimeMinutes));
+
+let min = Math.floor(predicted);
+let sec = Math.round((predicted-min)*60);
+
+document.getElementById("prediction").innerText =
+min + ":" + String(sec).padStart(2,"0");
+
+}
+
+const start = new Date("2026-03-02");
+const end = new Date("2026-05-10");
+
+for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
+
+let iso = d.toISOString().split("T")[0];
+
+let shift="Off day";
+let shiftClass="off";
+
+if(shifts12.has(iso)){
+shift="12-hour shift";
+shiftClass="shift12";
+}
+else if(shiftsShort.has(iso)){
+shift="10-6 shift";
+shiftClass="shiftShort";
+}
+
+let run="REST";
+let details="Recovery day";
+let runClass="rest";
+
+if(runs[iso]){
+run=runs[iso][0].toUpperCase();
+details=runs[iso][1];
+runClass=runs[iso][0];
+}
+
+let row=document.createElement("tr");
+
+if(new Date().toDateString()===d.toDateString()){
+row.classList.add("today");
+}
+
+let checkbox=document.createElement("input");
+checkbox.type="checkbox";
+checkbox.checked=loadProgress(iso);
+
+checkbox.onchange=()=>{
+saveProgress(iso, checkbox.checked);
+};
+
+let c1=document.createElement("td");
+c1.appendChild(checkbox);
+
+let c2=document.createElement("td");
+c2.innerText=d.toDateString();
+
+let c3=document.createElement("td");
+c3.innerText=shift;
+c3.className=shiftClass;
+
+let c4=document.createElement("td");
+c4.innerText=run;
+c4.className=runClass;
+
+let c5=document.createElement("td");
+c5.innerText=details;
+
+row.appendChild(c1);
+row.appendChild(c2);
+row.appendChild(c3);
+row.appendChild(c4);
+row.appendChild(c5);
+
+table.appendChild(row);
+
+}
+
+function updateCountdown(){
+let now=new Date();
+let diff=raceDate-now;
+let days=Math.ceil(diff/(1000*60*60*24));
+document.getElementById("countdown").innerText=days+" days";
+}
+
+updateCountdown();
+updateStats();
+
 </script>
 
 </body>
